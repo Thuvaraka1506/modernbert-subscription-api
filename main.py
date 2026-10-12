@@ -1,4 +1,4 @@
-from pathlib import Path
+import os
 
 import torch
 from fastapi import FastAPI, HTTPException
@@ -10,22 +10,22 @@ app = FastAPI(
     version="1.0.0"
 )
 
-MODEL_PATH = Path.home() / "Downloads" / "modernbert_deploy"
+MODEL_ID = "Thuvaraka/modernbert-subscription-detector"
 
 tokenizer = None
 model = None
-device = torch.device("cpu")
 
 
 @app.on_event("startup")
 def load_model():
     global tokenizer, model
 
-    tokenizer = AutoTokenizer.from_pretrained(str(MODEL_PATH))
+    tokenizer = AutoTokenizer.from_pretrained(MODEL_ID)
+
     model = AutoModelForSequenceClassification.from_pretrained(
-        str(MODEL_PATH)
+        MODEL_ID
     )
-    model.to(device)
+
     model.eval()
 
 
@@ -33,11 +33,16 @@ class PredictionRequest(BaseModel):
     text: str
 
 
+@app.get("/")
+def home():
+    return {"message": "ModernBERT Subscription API"}
+
+
 @app.get("/health")
 def health():
     return {
         "status": "ready" if model is not None else "loading",
-        "model": "ModernBERT"
+        "model": MODEL_ID
     }
 
 
